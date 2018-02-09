@@ -9,16 +9,13 @@
 import Foundation
 
 public protocol RawProperties {
-  init(_ properties: [String: Any])
-  mutating func merge(_ other: Self)
-
-  mutating func merge<T>(_ value: inout T?, _ newValue: T?)
+    init(_ properties: [String: Any])
+    mutating func merge(_ other: Self)
 }
 
-public extension RawProperties {
-  public mutating func merge<T>(_ value: inout T?, _ newValue: T?) {
+public func merge<T>(_ value: inout T?, _ newValue: T?) {
     if let newValue = newValue {
-      value = newValue
+        value = newValue
     }
-  }
 }
+

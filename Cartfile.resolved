@@ -1,4 +1,4 @@
-github "facebook/css-layout" "620cb3f507a06b71ba080dfb7aa453e4ada574c9"
+github "facebook/css-layout" "6e38a26f327b87bfcf0ef25344867235062683c4"
+github "mcudich/CSSLayout" "7f80557a4b7ce189c90426deb45c77adaeea3404"
+github "mcudich/CSSParser" "4cf02718fd59279147b3b201551c3809a2a96727"
 github "mcudich/katana-parser" "aa656934a73f8c869789f8d1c852b98322df13eb"
-github "mcudich/CSSLayout" "4dec53c006f0d5c53b5ae5cfd1773a081d4ed1b4"
-github "mcudich/CSSParser" "00ff2ee18ff056d2c7626d303eb51444446ef7da"

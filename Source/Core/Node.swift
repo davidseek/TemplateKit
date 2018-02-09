@@ -2,177 +2,178 @@ import UIKit
 import CSSLayout
 
 public protocol Node: class, Keyable {
-  weak var owner: Node? { get set }
-  weak var parent: Node? { get set }
-  var context: Context? { get set }
-  var view: View { get }
-
-  var children: [Node]? { get set }
-  var cssNode: CSSNode? { get set }
-  var type: ElementRepresentable { get }
-
-  func build() -> View
-  func update(with newElement: Element)
-  func forceUpdate()
-  func computeLayout(availableWidth: Float, availableHeight: Float) -> CSSLayout
-  func buildCSSNode() -> CSSNode
-  func updateCSSNode()
-  func getContext() -> Context
+    weak var owner: Node? { get set }
+    weak var parent: Node? { get set }
+    var context: Context? { get set }
+    var view: View { get }
+    
+    var children: [Node]? { get set }
+    var cssNode: CSSNode? { get set }
+    var type: ElementRepresentable { get }
+    
+    func build() -> View
+    func update(with newElement: Element)
+    func forceUpdate()
+    func computeLayout(availableWidth: Float, availableHeight: Float) -> CSSLayout
+    func buildCSSNode() -> CSSNode
+    func updateCSSNode()
+    func getContext() -> Context
 }
 
 public extension Node {
-  func computeLayout(availableWidth: Float = .nan, availableHeight: Float = .nan) -> CSSLayout {
-    return buildCSSNode().layout(availableWidth: availableWidth, availableHeight: availableHeight)
-  }
-
-  func shouldReplace(type: ElementRepresentable, with otherType: ElementRepresentable) -> Bool {
-    return !type.equals(otherType)
-  }
-
-  func updateParent() {
-    for child in (children ?? []) {
-      child.parent = self
+    func computeLayout(availableWidth: Float = .nan, availableHeight: Float = .nan) -> CSSLayout {
+        return buildCSSNode().layout(availableWidth: availableWidth, availableHeight: availableHeight)
     }
-  }
-
-  func getContext() -> Context {
-    guard let context = context ?? owner?.getContext() else {
-      fatalError("No context available")
+    
+    func shouldReplace(type: ElementRepresentable, with otherType: ElementRepresentable) -> Bool {
+        return !type.equals(otherType)
     }
-    return context
-  }
+    
+    func updateParent() {
+        for child in (children ?? []) {
+            child.parent = self
+        }
+    }
+    
+    func getContext() -> Context {
+        guard let context = context ?? owner?.getContext() else {
+            fatalError("No context available")
+        }
+        return context
+    }
 }
 
 public protocol PropertyNode: Node {
-  associatedtype PropertiesType: Properties
-
-  var element: ElementData<PropertiesType> { get set }
-  var properties: PropertiesType { get set }
-
-  func shouldUpdate(nextProperties: PropertiesType) -> Bool
-  func performDiff()
+    associatedtype PropertiesType: Properties
+    
+    var element: ElementData<PropertiesType> { get set }
+    var properties: PropertiesType { get set }
+    
+    func shouldUpdate(nextProperties: PropertiesType) -> Bool
+    func performDiff()
 }
 
 public extension PropertyNode {
-  public var key: String? {
-    get {
-      return properties.core.identifier.key
+    public var key: String? {
+        get {
+            return properties.core.identifier.key
+        }
+        set {
+            properties.core.identifier.key = newValue
+        }
     }
-    set {
-      properties.core.identifier.key = newValue
+    
+    var type: ElementRepresentable {
+        return element.type
     }
-  }
-
-  var type: ElementRepresentable {
-    return element.type
-  }
-
-  func update(with newElement: Element) {
-    let newElement = newElement as! ElementData<PropertiesType>
-    let nextProperties = newElement.properties
-    let shouldUpdate = self.shouldUpdate(nextProperties: nextProperties)
-    performUpdate(with: newElement, nextProperties: nextProperties, shouldUpdate: shouldUpdate)
-  }
-
-  func forceUpdate() {
-    performUpdate(with: element, nextProperties: properties, shouldUpdate: true)
-  }
-
-  func performUpdate(with newElement: ElementData<PropertiesType>, nextProperties: PropertiesType, shouldUpdate: Bool) {
-    element = newElement
-
-    if properties != nextProperties {
-      properties = nextProperties
-      updateCSSNode()
+    
+    func update(with newElement: Element) {
+        let newElement = newElement as! ElementData<PropertiesType>
+        let nextProperties = newElement.properties
+        let shouldUpdate = self.shouldUpdate(nextProperties: nextProperties)
+        performUpdate(with: newElement, nextProperties: nextProperties, shouldUpdate: shouldUpdate)
     }
-
-    if shouldUpdate {
-      performDiff()
+    
+    func forceUpdate() {
+        performUpdate(with: element, nextProperties: properties, shouldUpdate: true)
     }
-  }
-
-  // Nodes by default perform child diffs, regardless of whether they themselves updated. This
-  // function can be overriden by nodes that want finer-grained control over whether their subtree
-  // is evaluated.
-  func performDiff() {
-    diffChildren(newChildren: element.children ?? [])
-  }
-
-  // Nodes should always update by default.
-  func shouldUpdate(nextProperties: PropertiesType) -> Bool {
-    return true
-  }
-
-  private func diffChildren(newChildren: [Element]) {
-    var currentChildren = (children ?? []).keyed { index, elm in
-      computeKey(index, elm)
+    
+    func performUpdate(with newElement: ElementData<PropertiesType>, nextProperties: PropertiesType, shouldUpdate: Bool) {
+        element = newElement
+        
+        if properties != nextProperties {
+            properties = nextProperties
+            updateCSSNode()
+        }
+        
+        if shouldUpdate {
+            performDiff()
+        }
     }
-
-    for (index, element) in newChildren.enumerated() {
-      let key = computeKey(index, element)
-      guard let currentChild = currentChildren[key] else {
-        append(element)
-        continue
-      }
-      currentChildren.removeValue(forKey: key)
-
-      if shouldReplace(type: currentChild.type, with: element.type) {
-        replace(currentChild, with: element)
-      } else {
-        move(child: currentChild, to: index)
-        currentChild.update(with: element)
-      }
+    
+    // Nodes by default perform child diffs, regardless of whether they themselves updated. This
+    // function can be overriden by nodes that want finer-grained control over whether their subtree
+    // is evaluated.
+    func performDiff() {
+        diffChildren(newChildren: element.children ?? [])
     }
-
-    for (_, child) in currentChildren {
-      remove(child: child)
+    
+    // Nodes should always update by default.
+    func shouldUpdate(nextProperties: PropertiesType) -> Bool {
+        return true
     }
-  }
-
-  private func computeKey(_ index: Int, _ keyable: Keyable) -> String {
-    return keyable.key ?? "\(index)"
-  }
-
-  private func insert(child: Node, at index: Int) {
-    children?.insert(child, at: index)
-    cssNode?.insertChild(child: child.buildCSSNode(), at: index)
-  }
-
-  private func remove(child: Node) {
-    guard let index = index(of: child) else {
-      return
+    
+    private func diffChildren(newChildren: [Element]) {
+        var currentChildren = (children ?? []).keyed { index, elm in
+            computeKey(index, elm)
+        }
+        
+        for (index, element) in newChildren.enumerated() {
+            let key = computeKey(index, element)
+            guard let currentChild = currentChildren[key] else {
+                append(element)
+                continue
+            }
+            currentChildren.removeValue(forKey: key)
+            
+            if shouldReplace(type: (currentChild as! Node).type, with: element.type) {
+                replace((currentChild as! Node), with: element)
+            } else {
+                move(child: currentChild as! Node, to: index)
+                (currentChild as! Node).update(with: element)
+            }
+        }
+        
+        for (_, child) in currentChildren {
+            remove(child: child)
+        }
     }
-    children?.remove(at: index)
-    if let childNode = child.cssNode {
-      cssNode?.removeChild(child: childNode)
+    
+    private func computeKey(_ index: Int, _ keyable: Keyable) -> String {
+        return keyable.key ?? "\(index)"
     }
-  }
-
-  private func move(child: Node, to index: Int) {
-    guard let currentIndex = self.index(of: child), currentIndex != index else {
-      return
+    
+    private func insert(child: Node, at index: Int) {
+        children?.insert(child, at: index)
+        cssNode?.insertChild(child: child.buildCSSNode(), at: index)
     }
-    children?.remove(at: currentIndex)
-    if let childNode = child.cssNode {
-      cssNode?.removeChild(child: childNode)
+    
+    private func remove(child: Node) {
+        guard let index = index(of: child) else {
+            return
+        }
+        children?.remove(at: index)
+        if let childNode = child.cssNode {
+            cssNode?.removeChild(child: childNode)
+        }
     }
-    insert(child: child, at: index)
-  }
-
-  private func index(of child: Node) -> Int? {
-    return children?.index(where: { $0 === child })
-  }
-
-  private func replace(_ node: Node, with element: Element) {
-    let replacement = element.build(withOwner: owner, context: nil)
-    let index = self.index(of: node)!
-    remove(child: node)
-    insert(child: replacement, at: index)
-  }
-
-  private func append(_ element: Element) {
-    let child = element.build(withOwner: owner, context: nil)
-    children?.insert(child, at: children!.endIndex)
-    cssNode?.insertChild(child: child.buildCSSNode(), at: children!.count - 1)
-  }
+    
+    private func move(child: Node, to index: Int) {
+        guard let currentIndex = self.index(of: child), currentIndex != index else {
+            return
+        }
+        children?.remove(at: currentIndex)
+        if let childNode = child.cssNode {
+            cssNode?.removeChild(child: childNode)
+        }
+        insert(child: child, at: index)
+    }
+    
+    private func index(of child: Node) -> Int? {
+        return children?.index(where: { $0 === child })
+    }
+    
+    private func replace(_ node: Node, with element: Element) {
+        let replacement = element.build(withOwner: owner, context: nil)
+        let index = self.index(of: node)!
+        remove(child: node)
+        insert(child: replacement, at: index)
+    }
+    
+    private func append(_ element: Element) {
+        let child = element.build(withOwner: owner, context: nil)
+        children?.insert(child, at: children!.endIndex)
+        cssNode?.insertChild(child: child.buildCSSNode(), at: children!.count - 1)
+    }
 }
+

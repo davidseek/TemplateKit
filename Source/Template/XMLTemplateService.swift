@@ -59,7 +59,7 @@ public class XMLTemplateService: TemplateService {
 
   public func fetchTemplates(withURLs urls: [URL], completion: @escaping (Result<Void>) -> Void) {
     if urls.isEmpty {
-      return completion(.success())
+      return completion(.success(()))
     }
 
     if cachePolicy == .never {
@@ -79,7 +79,7 @@ public class XMLTemplateService: TemplateService {
             self?.templates[url] = Template(componentElement, styleSheet ?? StyleSheet())
             pendingURLs.remove(url)
             if pendingURLs.isEmpty {
-              completion(.success())
+              completion(.success(()))
               if self?.liveReload ?? false {
                 self?.watchTemplates(withURLs: urls)
               }

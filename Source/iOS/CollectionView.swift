@@ -216,17 +216,17 @@ public class CollectionView: UICollectionView, AsyncDataListView {
     return view.frame.size
   }
 
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+  @objc func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
     return nodeCache[section].count
   }
 
-  func numberOfSectionsInCollectionView(_ collectionView: UICollectionView) -> Int {
+  @objc func numberOfSectionsInCollectionView(_ collectionView: UICollectionView) -> Int {
     return nodeCache.count
   }
 
   // There's some weirdness going on here. The Objective-C runtime requires this method to be named a bit differently
   // so that it will respond to the selector. This will likely need fixing down the road.
-  func collectionView(_ collectionView: UICollectionView, cellForItemAtIndexPath indexPath: IndexPath) -> UICollectionViewCell {
+  @objc func collectionView(_ collectionView: UICollectionView, cellForItemAtIndexPath indexPath: IndexPath) -> UICollectionViewCell {
     let cell = dequeueReusableCell(withReuseIdentifier: cellIdentifier, for: indexPath) as! CollectionViewCell
     if let node = node(at: indexPath) {
       cell.node = node
@@ -235,7 +235,7 @@ public class CollectionView: UICollectionView, AsyncDataListView {
   }
 
   // Here too.
-  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: IndexPath) -> CGSize {
+  @objc func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: IndexPath) -> CGSize {
     return sizeForNode(node(at: indexPath))
   }
 }

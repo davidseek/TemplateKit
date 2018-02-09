@@ -31,7 +31,7 @@ extension UIView: View {
   }
 
   public var parent: View? {
-    return superview as? View
+    return superview
   }
 
   public func add(_ view: View) {

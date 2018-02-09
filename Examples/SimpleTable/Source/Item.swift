@@ -20,7 +20,7 @@ struct ItemProperties: Properties {
 
   mutating func merge(_ other: ItemProperties) {
     core.merge(other.core)
-    merge(&item, other.item)
+    TemplateKit.merge(&item, other.item)
   }
 }
 
